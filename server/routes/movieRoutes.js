@@ -1,47 +1,92 @@
-import { Router } from 'express';
+import express from 'express';
+import cors from 'cors';
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+// CRITICAL: Ensure the .js extension is present for ES Modules
+import movieRoutes from './routes/movieRoutes.js'; 
 
-const router = Router();
+// Load variables from .env file
+dotenv.config();
 
-const movieSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  plot: String,
-  poster: String,
-  year: Number,
-  genres: [String],
-  runtime: Number,
-}, { collection: 'movies' });
+const app = express();
+const PORT = process.env.PORT || 5001; 
+const MONGODB_URI = process.env.MONGODB_URI; 
+const MONGODB_DB = process.env.MONGODB_DB || 'sample_mflix';
 
-const Movie = mongoose.models.Movie || mongoose.model('Movie', movieSchema);
+// Define the origins allowed to access the API (CORS fix)
+const ALLOWED_ORIGINS = [
+    // This is your live Vercel domain
+    'https://mern-movie-app-umber.vercel.app', 
+    'http://localhost:5173' // Also keep local development
+];
 
-router.get('/movies/search', async (req, res) => {
-  const { title } = req.query;
 
-  if (!title || typeof title !== 'string' || !title.trim()) {
-    return res.status(400).json({ message: 'Movie title query parameter is required.' });
-  }
+// --- Database Connection ---
+if (!MONGODB_URI) {
+    console.error('CRITICAL ERROR: MONGODB_URI is not set.');
+    process.exit(1); 
+}
 
-  if (mongoose.connection.readyState !== 1) {
-    return res.status(503).json({ message: 'Database not connected. Please try again later.' });
-  }
+// Connect to MongoDB and start the server only upon success
+mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000,
+    dbName: MONGODB_DB,
+})
+    .then(() => {
+        console.log(`MongoDB connection successful (db: ${MONGODB_DB})!`);
+        
+        // *************************************************************
+        // *** Start the server ONLY after the DB connects ***
+        // *************************************************************
+        app.listen(PORT, () => {
+            console.log(`Movie API Server running on port ${PORT}`);
+            console.log(`Ready to handle requests.`);
+        });
+    })
+    .catch(err => {
+        console.error('MongoDB connection error. Exiting process:', err);
+        process.exit(1); 
+    });
 
-  const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  try {
-    const movie = await Movie.findOne({
-      title: { $regex: new RegExp(escapeRegex(title.trim()), 'i') }
-    }).lean();
+// --- Middleware and API Routes ---
 
-    if (!movie) {
-      return res.status(404).json({ message: `Movie with title containing "${title}" not found.` });
-    }
+// Configure CORS to only allow the Vercel and local domains
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.log(`CORS blocked request from origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'), false);
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], 
+    credentials: true
+}));
 
-    res.json(movie);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching movie data from database.', error: err?.message || String(err) });
-  }
+app.use(express.json());
+
+// Health endpoint (This should be working)
+app.get('/api/health', async (_req, res) => {
+    const state = mongoose.connection.readyState; // 1 = connected
+    const healthy = state === 1;
+    res.status(healthy ? 200 : 503).json({
+        status: healthy ? 'ok' : 'degraded',
+        dbConnected: healthy,
+        dbName: MONGODB_DB,
+    });
 });
 
-export default router;
+// *****************************************************************
+// *** CRITICAL: Mount API routes at the /api base path. ***
+// *****************************************************************
+app.use('/api', movieRoutes); 
+
+// Fallback for 404 errors (Must be placed AFTER all valid routes)
+app.use((_req, res) => {
+    res.status(404).send({ message: "Route not found on this server." });
+});
 
 
+// Note: The app.listen() call is now correctly located inside mongoose.connect.

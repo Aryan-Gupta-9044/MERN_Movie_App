@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { Search, Film, Calendar, Globe, Clock, XCircle, Info } from 'lucide-react';
 import './App.css'
 
+<<<<<<< HEAD
 import { API_BASE_URL } from './apiconfig';
+=======
+import { API_BASE_URL } from './config';
+>>>>>>> dc60df14dca7915a2b222718c0ea43fdff2e61c8
 // --- MovieCard Component (for clean display) ---
 const MovieCard = ({ movie }) => {
     if (!movie) return null;

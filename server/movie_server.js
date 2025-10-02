@@ -2,7 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import movieRoutes from './routes/movieRoutes.js';
+// CRITICAL FIX: The path must be relative to the server script's execution context.
+// Assuming movie_server.js is at server/movie_server.js and the router is at server/routes/movieRoutes.js
+import movieRoutes from './routes/movieRoutes.js'; 
 
 // Load variables from .env file
 dotenv.config();
@@ -14,7 +16,7 @@ const MONGODB_DB = process.env.MONGODB_DB || 'sample_mflix';
 
 // Define the origins allowed to access the API (CORS fix)
 const ALLOWED_ORIGINS = [
-    // This is your live Vercel domain from the last screenshot
+    // This is your live Vercel domain
     'https://mern-movie-app-umber.vercel.app', 
     'http://localhost:5173' // Also keep local development
 ];
@@ -23,11 +25,10 @@ const ALLOWED_ORIGINS = [
 // --- Database Connection ---
 if (!MONGODB_URI) {
     console.error('CRITICAL ERROR: MONGODB_URI is not set.');
-    // In production, we should exit if the DB URI is missing
     process.exit(1); 
 }
 
-// Connect to MongoDB
+// Connect to MongoDB and start the server only upon success
 mongoose.connect(MONGODB_URI, {
     serverSelectionTimeoutMS: 5000,
     dbName: MONGODB_DB,
@@ -36,7 +37,7 @@ mongoose.connect(MONGODB_URI, {
         console.log(`MongoDB connection successful (db: ${MONGODB_DB})!`);
         
         // *************************************************************
-        // *** CRITICAL FIX: Start the server ONLY after the DB connects ***
+        // *** Start the server ONLY after the DB connects ***
         // *************************************************************
         app.listen(PORT, () => {
             console.log(`Movie API Server running on port ${PORT}`);
@@ -45,7 +46,6 @@ mongoose.connect(MONGODB_URI, {
     })
     .catch(err => {
         console.error('MongoDB connection error. Exiting process:', err);
-        // Crash the application if connection fails, preventing Bad Gateway
         process.exit(1); 
     });
 
@@ -62,13 +62,13 @@ app.use(cors({
             callback(new Error('Not allowed by CORS'), false);
         }
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], 
     credentials: true
 }));
 
 app.use(express.json());
 
-// Health endpoint
+// Health endpoint (This should be working)
 app.get('/api/health', async (_req, res) => {
     const state = mongoose.connection.readyState; // 1 = connected
     const healthy = state === 1;
@@ -79,8 +79,15 @@ app.get('/api/health', async (_req, res) => {
     });
 });
 
-// Mount API routes
-app.use('/api', movieRoutes);
-// *******************************************************************
-// *** The app.listen() call has been moved inside mongoose.connect.***
-// *******************************************************************
+// *****************************************************************
+// *** CRITICAL: Mount API routes at the /api base path. ***
+// *****************************************************************
+app.use('/api', movieRoutes); 
+
+// Fallback for 404 errors (Must be placed AFTER all valid routes)
+app.use((_req, res) => {
+    res.status(404).send({ message: "Route not found on this server." });
+});
+
+
+// Note: The app.listen() call is now correctly located inside mongoose.connect.

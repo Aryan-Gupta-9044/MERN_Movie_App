@@ -2,6 +2,7 @@
         import cors from 'cors';
         import mongoose from 'mongoose';
         import dotenv from 'dotenv';
+        import movieRoutes from './routes/movieRoutes.js';
 
         // Load variables from .env file
         dotenv.config();
@@ -26,18 +27,6 @@
                 });
         }
 
-        // --- Mongoose Schema and Model for Movies ---
-        const movieSchema = new mongoose.Schema({
-            title: { type: String, required: true },
-            plot: String,
-            poster: String,
-            year: Number,
-            genres: [String],
-            runtime: Number,
-        }, { collection: 'movies' }); 
-
-        const Movie = mongoose.model('Movie', movieSchema);
-
         // --- Middleware and API Routes ---
         app.use(cors());
         app.use(express.json());
@@ -53,38 +42,8 @@
             });
         });
 
-        // API: GET movie details by searching for the title (case-insensitive)
-        app.get('/api/movies/search', async (req, res) => {
-            const { title } = req.query;
-            console.log('GET /api/movies/search', { title });
-
-            if (!title || typeof title !== 'string' || !title.trim()) {
-                return res.status(400).json({ message: 'Movie title query parameter is required.' });
-            }
-
-            if (mongoose.connection.readyState !== 1) {
-                return res.status(503).json({ message: 'Database not connected. Please try again later.' });
-            }
-
-            // Escape user input to a safe literal regex
-            const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-            try {
-                // Use a case-insensitive regular expression
-                const movie = await Movie.findOne({
-                    title: { $regex: new RegExp(escapeRegex(title.trim()), 'i') }
-                }).lean();
-
-                if (!movie) {
-                    return res.status(404).json({ message: `Movie with title containing "${title}" not found.` });
-                }
-
-                res.json(movie);
-            } catch (err) {
-                console.error('Error fetching movie:', err && err.stack ? err.stack : err);
-                res.status(500).json({ message: 'Error fetching movie data from database.', error: err?.message || String(err) });
-            }
-        });
+        // Mount API routes
+        app.use('/api', movieRoutes);
 
         // --- Start the server ---
         app.listen(PORT, () => {

@@ -12,3 +12,7 @@ export const API_ENDPOINTS = {
     HEALTH: `${API_BASE_URL}/api/health`,
     MOVIES_SEARCH: `${API_BASE_URL}/api/movies/search`,
 };
+// client/src/config.js
+//export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+// You might also have this if you want to export endpoints directly
+// export const API_ENDPOINTS = { /* ... */ };

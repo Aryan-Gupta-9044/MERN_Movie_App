@@ -2,7 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-// CRITICAL: Ensure the .js extension is present for ES Modules
+// CRITICAL FIX: The path must be relative to the server script's execution context.
+// Assuming movie_server.js is at server/movie_server.js and the router is at server/routes/movieRoutes.js
 import movieRoutes from './routes/movieRoutes.js'; 
 
 // Load variables from .env file

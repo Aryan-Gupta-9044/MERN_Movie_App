@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Film, Calendar, Globe, Clock, XCircle, Info } from 'lucide-react';
 import './App.css'
-
-// The only configuration import, referencing the new file name
-import { API_BASE_URL } from './apiconfig.js'; 
-
+import { API_BASE_URL } from './apiconfig';
 // --- MovieCard Component (for clean display) ---
 const MovieCard = ({ movie }) => {
     if (!movie) return null;

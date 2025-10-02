@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Film, Calendar, Globe, Clock, XCircle, Info } from 'lucide-react';
 import './App.css'
-
-// Use Vite dev proxy; in production, serve client behind same origin
-const API_BASE_URL = '/api';
+import API_BASE_URL from './config';
 
 // --- MovieCard Component (for clean display) ---
 const MovieCard = ({ movie }) => {
@@ -72,7 +70,7 @@ function App() {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/movies/search?title=${encodeURIComponent(searchTerm)}`);
+            const response = await fetch(`${API_BASE_URL}/api/movies/search?title=${encodeURIComponent(searchTerm)}`);
 
             // Attempt to parse JSON, fall back to text on failure (e.g., HTML proxy error page)
             let parsedBody = null;

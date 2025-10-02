@@ -2,19 +2,8 @@ import React, { useState } from 'react';
 import { Search, Film, Calendar, Globe, Clock, XCircle, Info } from 'lucide-react';
 import './App.css'
 
-// client/src/App.jsx (Ensure lines 4-7 are clean)
-
-import React, { useState } from 'react';
-import { Search, Film, Calendar, Globe, Clock, XCircle, Info } from 'lucide-react';
-import './App.css'
-
-// This is the only import that should be present for the config file
+// The only configuration import, referencing the new file name
 import { API_BASE_URL } from './apiConfig'; 
-// --- MovieCard Component (for clean display) ---
-// ... rest of the file
-
-
-
 
 // --- MovieCard Component (for clean display) ---
 const MovieCard = ({ movie }) => {

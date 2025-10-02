@@ -3,7 +3,7 @@ import { Search, Film, Calendar, Globe, Clock, XCircle, Info } from 'lucide-reac
 import './App.css'
 
 // The only configuration import, referencing the new file name
-import { API_BASE_URL } from './apiConfig'; 
+import { API_BASE_URL } from './apiConfig.js'; 
 
 // --- MovieCard Component (for clean display) ---
 const MovieCard = ({ movie }) => {

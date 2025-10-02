@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Search, Film, Calendar, Globe, Clock, XCircle, Info } from 'lucide-react';
 import './App.css'
-// CRITICAL FIX: Changed default import to NAMED import { API_BASE_URL }
-import { API_BASE_URL } from './config';
 
+import { API_BASE_URL } from './config';
 // --- MovieCard Component (for clean display) ---
 const MovieCard = ({ movie }) => {
     if (!movie) return null;

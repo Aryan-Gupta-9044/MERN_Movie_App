@@ -15,4 +15,8 @@ export const API_ENDPOINTS = {
 // client/src/config.js
 //export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 // You might also have this if you want to export endpoints directly
+<<<<<<< HEAD
 // export const API_ENDPOINTS = { /* ... */ };
+=======
+// export const API_ENDPOINTS = { /* ... */ };
+>>>>>>> 4d91eddfde581edf464801bffe46bc7d289fdfa3

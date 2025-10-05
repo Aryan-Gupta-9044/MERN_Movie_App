@@ -1,11 +1,10 @@
 import express from 'express';
+// Import the Movie model from the server/models directory
+import Movie from '../models/Movie.js'; 
 
 const router = express.Router();
 
-// NOTE: All model imports were removed because the 'models' directory is not present.
-// If you add models later, you must uncomment and correct the import paths.
-
-// Example route - this should now work without crashing, as it has no dependencies.
+// Example route - API health check (different from /api/health in movie_server.js)
 router.get('/', (req, res) => {
     // This route is called via /api
     res.json({ message: 'Movie API running successfully. Add /movies or other endpoints.' });
@@ -13,26 +12,41 @@ router.get('/', (req, res) => {
 
 router.get('/movies', (req, res) => {
     // This route is called via /api/movies
-    res.json({ message: 'Movies endpoint - currently returning placeholder data as no database model is loaded.' });
+    res.json({ message: 'Movies endpoint - currently returning placeholder data.' });
 });
 
 // ***************************************************************
-// CRITICAL FIX: Add the missing /movies/search route to fix the 404 error.
-// The frontend is requesting this route with a 'title' query parameter.
+// IMPLEMENTATION: The /movies/search route to query MongoDB
 // ***************************************************************
-router.get('/movies/search', (req, res) => {
+router.get('/movies/search', async (req, res) => {
     const { title } = req.query;
     
-    // In a real MERN app, you would perform a MongoDB query here:
-    // const movies = await Movie.find({ title: new RegExp(title, 'i') });
-    
-    // For now, return a 200 OK status with a message confirming the search worked.
-    console.log(`Received search query for title: "${title}"`);
-    res.status(200).json({ 
-        message: `Search request for "${title}" received and route is working!`,
-        query: title,
-        results: [] // Placeholder for movie results
-    });
+    if (!title) {
+        return res.status(400).json({ message: "Search query 'title' is required." });
+    }
+
+    try {
+        // Perform a case-insensitive search on the 'title' field using a regular expression.
+        const movies = await Movie.find(
+            { title: new RegExp(title, 'i') }, 
+            // Projection: Only select the fields needed for the frontend display
+            { title: 1, plot: 1, runtime: 1, poster: 1, released: 1, genres: 1 }
+        ).limit(1); // Limiting to 1 result for simplicity, as suggested by the UI screenshot
+
+        // Check if any movies were found
+        if (movies.length === 0) {
+            // Returning a 404 (Not Found) message when the query is empty
+            return res.status(404).json({ message: `No movie found matching title: "${title}"` });
+        }
+
+        // Return the first found movie data (as the UI suggests displaying one item)
+        res.status(200).json(movies[0]);
+
+    } catch (error) {
+        // Log the error and return a generic 500 status
+        console.error("Database search error:", error);
+        res.status(500).json({ message: "An error occurred during movie search." });
+    }
 });
 
 

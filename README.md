@@ -121,3 +121,4 @@ MERN_Movie_App/
 ## License
 
 This project is open source and available under the [MIT License](LICENSE).
+

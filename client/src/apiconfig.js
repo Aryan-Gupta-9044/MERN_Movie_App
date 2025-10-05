@@ -1,17 +1,30 @@
-// This file determines the base URL for API calls.
-// In development (local): VITE_API_URL is undefined, so it uses localhost:5001 (via Vite Proxy).
-// In production (Vercel): VITE_API_URL is set to the Railway URL.
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-// NOTE: We need to use 'export' here so App.jsx can import both API_BASE_URL 
-// and API_ENDPOINTS.
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      // NOTE: The proxy is only used during local development (npm run dev)
+      '/api': 'http://127.0.0.1:5001', 
+    }
+  }
+})
+
+
+// NOTE: The VITE_API_URL environment variable (set in Vercel to https://mern-movie-app-9rj2.onrender.com)
+// MUST now include the '/api' suffix in its value, so we don't duplicate it here.
+
+// --------------------------------------------------------------------------------
+// CRITICAL FIX: The base URL must include the '/api' prefix to avoid duplication 
+// in the API_ENDPOINTS object below.
+// --------------------------------------------------------------------------------
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 export const API_ENDPOINTS = {
-    // Note: The /api prefix must be included here as it is the base path
-    // defined in the Express router on the Railway server.
-    HEALTH: `${API_BASE_URL}/api/health`,
-    MOVIES_SEARCH: `${API_BASE_URL}/api/movies/search`,
+    // FIXED: Removed the redundant '/api' prefix from the endpoint definitions.
+    HEALTH: `${API_BASE_URL}/health`,
+    MOVIES_SEARCH: `${API_BASE_URL}/movies/search`,
+    // ... add other endpoints here if needed
 };
-// client/src/config.js
-//export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-// You might also have this if you want to export endpoints directly

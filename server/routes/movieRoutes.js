@@ -1,22 +1,23 @@
 import express from 'express';
-// Assuming you have a Movie model defined somewhere:
-// CRITICAL FIX LOCATION: If your model is in '../models/Movie.js' (up one folder) 
-// but you accidentally put './routes/' here, it creates the double-path error.
-import Movie from '../models/Movie.js'; 
 
 const router = express.Router();
 
-// Route to get all movies
-router.get('/movies', async (req, res) => {
-    try {
-        const movies = await Movie.find({});
-        res.status(200).json(movies);
-    } catch (error) {
-        console.error("Error fetching movies:", error);
-        res.status(500).json({ message: "Failed to fetch movies" });
-    }
+// NOTE: All model imports were removed because the 'models' directory is not present.
+// If you add models later, you must uncomment and correct the import paths.
+
+// Example route - this should now work without crashing, as it has no dependencies.
+router.get('/', (req, res) => {
+    // This route is called via /api
+    res.json({ message: 'Movie API running successfully. Add /movies or other endpoints.' });
 });
 
-// Add more routes (get by ID, post, put, delete) here...
+router.get('/movies', (req, res) => {
+    // This route is called via /api/movies
+    res.json({ message: 'Movies endpoint - currently returning placeholder data as no database model is loaded.' });
+});
+
+// Add more routes as needed
+// router.get('/movies/:id', ...)
+// router.post('/movies', ...)
 
 export default router;

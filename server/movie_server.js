@@ -16,11 +16,12 @@ const MONGODB_DB = process.env.MONGODB_DB || 'sample_mflix';
 
 // Define the origins allowed to access the API (CORS fix)
 const ALLOWED_ORIGINS = [
-    // This is your live Vercel domain
-    'https://mern-movie-app-umber.vercel.app', 
-    'http://localhost:5173' // Also keep local development
+    // This is your main Vercel domain
+    'https://mern-movie-app-umber.vercel.app', 
+    // CRITICAL FIX: Added the Vercel preview/branch domain to prevent CORS blocks during testing
+    'https://mern-movie-app-git-master-aryans-projects-7bc460bb.vercel.app',
+    'http://localhost:5173' // Also keep local development
 ];
-
 
 // --- Database Connection ---
 if (!MONGODB_URI) {

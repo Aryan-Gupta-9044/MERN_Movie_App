@@ -1,7 +1,23 @@
-// Base URL for the Express API.
-// Locally this falls back to http://localhost:5001/api; in production it's
-// injected via the VITE_API_URL environment variable (set in Vercel).
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+// Base URL for the Express API
+// Local development: http://localhost:5001/api
+// Production: Render backend with /api
+
+const configuredApiUrl = import.meta.env.VITE_API_URL;
+
+let API_BASE_URL;
+
+if (configuredApiUrl) {
+    // Remove trailing slash
+    API_BASE_URL = configuredApiUrl.replace(/\/+$/, '');
+
+    // Make sure /api is included
+    if (!API_BASE_URL.endsWith('/api')) {
+        API_BASE_URL += '/api';
+    }
+} else {
+    // Default production API
+    API_BASE_URL = 'https://mern-movie-app-9rj2.onrender.com/api';
+}
 
 export const API_ENDPOINTS = {
     HEALTH: `${API_BASE_URL}/health`,

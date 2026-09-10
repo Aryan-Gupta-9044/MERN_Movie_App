@@ -4,11 +4,15 @@ A full-stack movie search application built with the MERN stack (MongoDB, Expres
 
 ## Features
 
-- 🔍 Search for movies by title
-- 📱 Responsive design
-- 🚀 Fast API responses
-- 🗄️ MongoDB integration
-- ⚡ Real-time search
+- 🔍 Live search-as-you-type (debounced) across movie titles
+- 🎛️ Filter by genre, decade, and sort by rating / newest / oldest / title
+- 🖼️ Responsive movie grid with posters, ratings, and genre chips
+- 🎬 Detail view with full plot, cast, director, country, and awards
+- ❤️ Personal watchlist saved to the browser (localStorage), no login needed
+- ⭐ "Featured picks" homepage powered by a random high-rated sample
+- 📄 Pagination for browsing/search results
+- 💀 Skeleton loading states instead of blank screens
+- 📱 Fully responsive, mobile-friendly layout
 
 ## Tech Stack
 
@@ -78,7 +82,13 @@ A full-stack movie search application built with the MERN stack (MongoDB, Expres
 ## API Endpoints
 
 - `GET /api/health` - Health check
-- `GET /api/movies/search?title={movieTitle}` - Search for movies
+- `GET /api/movies?title=&genre=&year=&sort=&page=&limit=` - Paginated movie search/browse with filters
+  - `year` is a decade start, e.g. `1990` matches 1990–1999
+  - `sort` is one of `relevance` (rating), `newest`, `oldest`, `title`
+- `GET /api/movies/featured?limit=12` - A random sample of highly-rated movies (used on the homepage)
+- `GET /api/movies/genres` - Distinct list of genres, for building filter UI
+- `GET /api/movies/:id` - Full detail for a single movie
+- `GET /api/movies/search?title={movieTitle}` - Legacy single-result search (kept for backwards compatibility)
 
 ## Project Structure
 

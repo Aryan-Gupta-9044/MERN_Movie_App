@@ -1,165 +1,192 @@
-import React, { useState } from 'react';
-import { Search, Film, Calendar, Globe, Clock, XCircle, Info } from 'lucide-react';
-import './App.css'
-import { API_BASE_URL } from './apiconfig';
-// --- MovieCard Component (for clean display) ---
-const MovieCard = ({ movie }) => {
-    if (!movie) return null;
+import { useCallback, useEffect, useState } from 'react';
+import { Clapperboard, Compass, Heart, XCircle } from 'lucide-react';
+import './App.css';
+import { API_ENDPOINTS } from './apiconfig';
+import { useDebounce } from './hooks/useDebounce';
+import { useWatchlist } from './hooks/useWatchlist';
+import FilterBar from './components/FilterBar';
+import MovieGrid from './components/MovieGrid';
+import MovieModal from './components/MovieModal';
+import Pagination from './components/Pagination';
 
-    // Helper to format plot text
-    const formatPlot = (plot) => {
-        return plot && plot.length > 300 ? plot.substring(0, 300) + '...' : plot;
-    };
-
-    return (
-        <div className="movie-card">
-            <div className="movie-poster">
-                <img 
-                    src={movie.poster}
-                    alt={`Poster for ${movie.title}`}
-                    onError={(e) => { 
-                        e.target.onerror = null; 
-                        e.target.src = "https://placehold.co/400x600/6366f1/ffffff?text=Poster+Unavailable";
-                    }}
-                />
-                <div className="movie-meta">
-                    <span className="chip"><Calendar className="icon-sm"/> Released: {movie.year}</span>
-                </div>
-            </div>
-            <div>
-                <h2 className="movie-title">{movie.title}</h2>
-                <p>
-                    {movie.genres && movie.genres.map((g, index) => (
-                        <span key={index} className="chip">{g}</span>
-                    ))}
-                </p>
-                <p className="movie-plot">
-                    <Film className="icon-sm"/>
-                    {formatPlot(movie.plot || 'Plot summary not available.')}
-                </p>
-                <div className="movie-runtime">
-                    <Clock className="icon-sm" />
-                    <span><strong>Runtime:</strong> {movie.runtime ? `${movie.runtime} minutes` : 'N/A'}</span>
-                </div>
-                <div className="movie-info">
-                    <Info className="icon-sm" /> Data retrieved from MongoDB 'sample_mflix' collection via Express API.
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// --- Main Application Component ---
 function App() {
+    const [tab, setTab] = useState('discover'); // 'discover' | 'watchlist'
+
+    // Discover state
+    const [movies, setMovies] = useState([]);
+    const [genres, setGenres] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [movie, setMovie] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [genre, setGenre] = useState('');
+    const [year, setYear] = useState('');
+    const [sort, setSort] = useState('relevance');
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const handleSearch = async (e) => {
-        e.preventDefault();
-        setError(null);
+    const debouncedSearch = useDebounce(searchTerm, 400);
+    const { watchlist, isSaved, toggle } = useWatchlist();
+
+    // Modal state
+    const [activeMovie, setActiveMovie] = useState(null);
+    const [modalLoading, setModalLoading] = useState(false);
+
+    // Load genre list once.
+    useEffect(() => {
+        fetch(API_ENDPOINTS.GENRES)
+            .then((r) => r.json())
+            .then((data) => setGenres(data.genres || []))
+            .catch(() => setGenres([]));
+    }, []);
+
+    // Reset to page 1 whenever a filter changes.
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch, genre, year, sort]);
+
+    // Fetch movies whenever filters or page change (Discover tab only).
+    useEffect(() => {
+        if (tab !== 'discover') return;
+        const controller = new AbortController();
         setLoading(true);
-        setMovie(null);
+        setError(null);
 
-        if (!searchTerm.trim()) {
-            setError("Please enter a movie title to search.");
-            setLoading(false);
-            return;
-        }
+        const params = new URLSearchParams();
+        if (debouncedSearch.trim()) params.set('title', debouncedSearch.trim());
+        if (genre) params.set('genre', genre);
+        if (year) params.set('year', year);
+        if (sort) params.set('sort', sort);
+        params.set('page', page);
+        params.set('limit', 12);
 
-        try {
-            // API_BASE_URL is now correctly imported and accessible
-            const response = await fetch(`${API_BASE_URL}/api/movies/search?title=${encodeURIComponent(searchTerm)}`);
+        const url = debouncedSearch.trim() || genre || year
+            ? `${API_ENDPOINTS.MOVIES}?${params.toString()}`
+            : `${API_ENDPOINTS.FEATURED}?limit=12`;
 
-            // Attempt to parse JSON, fall back to text on failure (e.g., HTML proxy error page)
-            let parsedBody = null;
-            let isJson = false;
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('application/json')) {
-                try {
-                    parsedBody = await response.json();
-                    isJson = true;
-                } catch (_) {
-                    // fall through to text below
+        fetch(url, { signal: controller.signal })
+            .then(async (res) => {
+                if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                return res.json();
+            })
+            .then((data) => {
+                setMovies(data.movies || []);
+                setTotalPages(data.pagination?.totalPages || 1);
+            })
+            .catch((err) => {
+                if (err.name !== 'AbortError') {
+                    console.error('Fetch error:', err);
+                    setError('Could not load movies. Please check your connection and try again.');
+                    setMovies([]);
                 }
-            }
-            if (!isJson) {
-                try {
-                    const text = await response.text();
-                    parsedBody = text;
-                } catch (_) {
-                    parsedBody = null;
-                }
-            }
+            })
+            .finally(() => setLoading(false));
 
-            if (!response.ok) {
-                const msg = isJson ? (parsedBody?.message || 'Request failed') : (typeof parsedBody === 'string' && parsedBody.trim() ? parsedBody : `HTTP ${response.status}`);
-                throw new Error(msg);
-            }
+        return () => controller.abort();
+    }, [tab, debouncedSearch, genre, year, sort, page]);
 
-            const data = isJson ? parsedBody : (() => { throw new Error('Invalid response from server'); })();
+    const openMovie = useCallback((movie) => {
+        setActiveMovie(movie);
+        setModalLoading(true);
+        fetch(API_ENDPOINTS.MOVIE_DETAIL(movie._id))
+            .then((r) => r.json())
+            .then((full) => setActiveMovie(full))
+            .catch(() => {})
+            .finally(() => setModalLoading(false));
+    }, []);
 
-            if (data.message && typeof data.message === 'string' && data.message.includes('not found')) {
-                setError(data.message);
-                setMovie(null);
-            } else {
-                setMovie(data);
-                setError(null);
-            }
-        } catch (err) {
-            console.error('Fetch Error:', err.message);
-            setError(`Connection Error: Could not connect to API or the movie was not found. (${err.message})`);
-        } finally {
-            setLoading(false);
-        }
+    const clearFilters = () => {
+        setSearchTerm('');
+        setGenre('');
+        setYear('');
+        setSort('relevance');
     };
+
+    const isBrowsing = tab === 'discover';
 
     return (
         <div className="app">
             <header className="header">
                 <h1 className="title">
-                    <Globe className="icon-lg"/>
-                    <span>Mflix Data Explorer</span>
+                    <Clapperboard className="icon-lg" />
+                    <span>Mflix Explorer</span>
                 </h1>
-                <p className="subtitle">Search the MongoDB `sample_mflix` dataset via Express/Node.js</p>
+                <p className="subtitle">Browse, search and save movies from the sample_mflix dataset</p>
+
+                <nav className="tabs">
+                    <button
+                        type="button"
+                        className={`tab-btn ${tab === 'discover' ? 'active' : ''}`}
+                        onClick={() => setTab('discover')}
+                    >
+                        <Compass className="icon-sm" /> Discover
+                    </button>
+                    <button
+                        type="button"
+                        className={`tab-btn ${tab === 'watchlist' ? 'active' : ''}`}
+                        onClick={() => setTab('watchlist')}
+                    >
+                        <Heart className="icon-sm" /> Watchlist
+                        {watchlist.length > 0 && <span className="tab-count">{watchlist.length}</span>}
+                    </button>
+                </nav>
             </header>
 
-            <form onSubmit={handleSearch} className="search">
-                <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="E.g., Casablanca, Titanic, The Matrix..."
-                    className="search-input"
-                    disabled={loading}
+            <main className="content">
+                {isBrowsing && (
+                    <>
+                        <FilterBar
+                            searchTerm={searchTerm} onSearchChange={setSearchTerm}
+                            genre={genre} onGenreChange={setGenre} genres={genres}
+                            year={year} onYearChange={setYear}
+                            sort={sort} onSortChange={setSort}
+                            onClear={clearFilters}
+                        />
+
+                        {error && (
+                            <div className="alert error">
+                                <XCircle className="icon-sm" />
+                                <span>{error}</span>
+                            </div>
+                        )}
+
+                        {!error && !loading && !searchTerm && !genre && !year && (
+                            <p className="section-label">Featured picks</p>
+                        )}
+
+                        <MovieGrid
+                            movies={movies}
+                            loading={loading}
+                            emptyMessage="No movies matched your search. Try a different title or filter."
+                            onOpen={openMovie}
+                            isSaved={isSaved}
+                            onToggleSave={toggle}
+                        />
+
+                        {!loading && !error && <Pagination page={page} totalPages={totalPages} onChange={setPage} />}
+                    </>
+                )}
+
+                {!isBrowsing && (
+                    <MovieGrid
+                        movies={watchlist}
+                        loading={false}
+                        emptyMessage="Your watchlist is empty. Tap the heart on any movie to save it here."
+                        onOpen={openMovie}
+                        isSaved={isSaved}
+                        onToggleSave={toggle}
+                    />
+                )}
+            </main>
+
+            {activeMovie && (
+                <MovieModal
+                    movie={activeMovie}
+                    loading={modalLoading}
+                    onClose={() => setActiveMovie(null)}
+                    isSaved={isSaved(activeMovie._id)}
+                    onToggleSave={toggle}
                 />
-                <button type="submit" className="search-btn" disabled={loading}>
-                    {loading ? 'Searching…' : (<><Search className="icon-sm"/> Search</>)}
-                </button>
-            </form>
-
-            <div className="content">
-                {loading && (
-                    <div className="loading">
-                        <svg className="spinner" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="30"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-                        <span>Searching database…</span>
-                    </div>
-                )}
-
-                {error && (
-                    <div className="alert error">
-                        <XCircle className="icon-sm" />
-                        <span>{error}</span>
-                    </div>
-                )}
-
-                {!loading && !error && !movie && (
-                    <div className="placeholder">Start your search to display movie details here!</div>
-                )}
-
-                {movie && <MovieCard movie={movie} />}
-            </div>
+            )}
         </div>
     );
 }

@@ -60,7 +60,7 @@
 .tab-btn:hover { background: rgba(255,255,255,0.09); }
 .tab-btn.active { background: linear-gradient(180deg, #4f46e5, #4338ca); color: white; border-color: transparent; }
 .tab-count {
-  background: rgba(255,255,255,0.25); border-radius: 999px;
+  background: rgba(255,255,255,0.25); border-radius: 990px;
   font-size: 11px; padding: 1px 7px; min-width: 18px; text-align: center;
 }
 

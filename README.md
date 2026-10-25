@@ -128,7 +128,4 @@ MERN_Movie_App/
 4. Push to the branch
 5. Create a Pull Request
 
-## License
-
-This project is open source and available under the [MIT License](LICENSE).
 
